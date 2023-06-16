@@ -10,6 +10,39 @@ variable "name" {
   default     = ""
 }
 
+variable "project_name" {
+  description = "Project name used across resources created and a search key for finding resources"
+  type        = string
+}
+
+variable "env_group" {
+  description = "Environment grouping.  Valid values are \"prod\" and \"nonprod\""
+  type        = string
+  validation {
+    condition = contains(["prod", "nonprod"], var.env_group)
+  }
+}
+
+variable "env" {
+  description = "Environment within grouping, e.g. dev, sit, sat, prd"
+  type        = string
+}
+
+variable "cost_centre" {
+  description = "Cost-centre for the created resources"
+  type        = string
+}
+
+variable "owner" {
+  description = "Owner of the resources"
+  type        = string
+}
+
+variable "application" {
+  description = "Application for which the resources are created"
+  type        = string
+}
+
 variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)
@@ -20,23 +53,28 @@ variable "tags" {
 # DB Subnet Group
 ################################################################################
 
-variable "create_db_subnet_group" {
-  description = "Determines whether to create the database subnet group or use existing"
-  type        = bool
-  default     = false
-}
+#variable "create_db_subnet_group" {
+#  description = "Determines whether to create the database subnet group or use existing"
+#  type        = bool
+#  default     = false
+#}
 
-variable "db_subnet_group_name" {
-  description = "The name of the subnet group name (existing or created)"
+variable "subnet_group_name" {
+  description = "Subnet name for subnets spanning 1 or more availability zones, e.g. \"private\""
   type        = string
-  default     = ""
 }
 
-variable "subnets" {
-  description = "List of subnet IDs used by database subnet group created"
-  type        = list(string)
-  default     = []
-}
+#variable "db_subnet_group_name" {
+#  description = "The name of the subnet group name (existing or created)"
+#  type        = string
+#  default     = ""
+#}
+
+#variable "subnets" {
+#  description = "List of subnet IDs used by database subnet group created"
+#  type        = list(string)
+#  default     = []
+#}
 
 ################################################################################
 # Cluster
@@ -54,11 +92,11 @@ variable "cluster_use_name_prefix" {
   default     = false
 }
 
-variable "allocated_storage" {
-  description = "The amount of storage in gibibytes (GiB) to allocate to each DB instance in the Multi-AZ DB cluster. (This setting is required to create a Multi-AZ DB cluster)"
-  type        = number
-  default     = null
-}
+#variable "allocated_storage" {
+#  description = "The amount of storage in gibibytes (GiB) to allocate to each DB instance in the Multi-AZ DB cluster. (This setting is required to create a Multi-AZ DB cluster)"
+#  type        = number
+#  default     = null
+#}
 
 variable "allow_major_version_upgrade" {
   description = "Enable to allow major engine version upgrades when changing engine versions. Defaults to `false`"
@@ -90,11 +128,11 @@ variable "backtrack_window" {
   default     = null
 }
 
-variable "cluster_members" {
-  description = "List of RDS Instances that are a part of this cluster"
-  type        = list(string)
-  default     = null
-}
+#variable "cluster_members" {
+#  description = "List of RDS Instances that are a part of this cluster"
+#  type        = list(string)
+#  default     = null
+#}
 
 variable "copy_tags_to_snapshot" {
   description = "Copy all Cluster `tags` to snapshots"
@@ -144,17 +182,17 @@ variable "enable_http_endpoint" {
   default     = null
 }
 
-variable "engine" {
-  description = "The name of the database engine to be used for this DB cluster. Defaults to `aurora`. Valid Values: `aurora`, `aurora-mysql`, `aurora-postgresql`"
-  type        = string
-  default     = null
-}
-
-variable "engine_mode" {
-  description = "The database engine mode. Valid values: `global`, `multimaster`, `parallelquery`, `provisioned`, `serverless`. Defaults to: `provisioned`"
-  type        = string
-  default     = "provisioned"
-}
+#variable "engine" {
+#  description = "The name of the database engine to be used for this DB cluster. Defaults to `aurora`. Valid Values: `aurora`, `aurora-mysql`, `aurora-postgresql`"
+#  type        = string
+#  default     = null
+#}
+#
+#variable "engine_mode" {
+#  description = "The database engine mode. Valid values: `global`, `multimaster`, `parallelquery`, `provisioned`, `serverless`. Defaults to: `provisioned`"
+#  type        = string
+#  default     = "provisioned"
+#}
 
 variable "engine_version" {
   description = "The database engine version. Updating this argument results in an outage"
@@ -180,47 +218,47 @@ variable "iam_database_authentication_enabled" {
   default     = null
 }
 
-variable "iops" {
-  description = "The amount of Provisioned IOPS (input/output operations per second) to be initially allocated for each DB instance in the Multi-AZ DB cluster"
-  type        = number
-  default     = null
-}
+#variable "iops" {
+#  description = "The amount of Provisioned IOPS (input/output operations per second) to be initially allocated for each DB instance in the Multi-AZ DB cluster"
+#  type        = number
+#  default     = null
+#}
 
-variable "kms_key_id" {
-  description = "The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to `true`"
-  type        = string
-  default     = null
-}
+#variable "kms_key_id" {
+#  description = "The ARN for the KMS encryption key. When specifying `kms_key_id`, `storage_encrypted` needs to be set to `true`"
+#  type        = string
+#  default     = null
+#}
 
-variable "manage_master_user_password" {
-  description = "Set to true to allow RDS to manage the master user password in Secrets Manager. Cannot be set if `master_password` is provided"
-  type        = bool
-  default     = true
-}
+#variable "manage_master_user_password" {
+#  description = "Set to true to allow RDS to manage the master user password in Secrets Manager. Cannot be set if `master_password` is provided"
+#  type        = bool
+#  default     = true
+#}
 
-variable "master_user_secret_kms_key_id" {
-  description = "The Amazon Web Services KMS key identifier is the key ARN, key ID, alias ARN, or alias name for the KMS key"
-  type        = string
-  default     = null
-}
+#variable "master_user_secret_kms_key_id" {
+#  description = "The Amazon Web Services KMS key identifier is the key ARN, key ID, alias ARN, or alias name for the KMS key"
+#  type        = string
+#  default     = null
+#}
 
-variable "master_password" {
-  description = "Password for the master DB user. Note that this may show up in logs, and it will be stored in the state file. Required unless `manage_master_user_password` is set to `true` or unless `snapshot_identifier` or `replication_source_identifier` is provided or unless a `global_cluster_identifier` is provided when the cluster is the secondary cluster of a global database"
-  type        = string
-  default     = null
-}
+#variable "master_password" {
+#  description = "Password for the master DB user. Note that this may show up in logs, and it will be stored in the state file. Required unless `manage_master_user_password` is set to `true` or unless `snapshot_identifier` or `replication_source_identifier` is provided or unless a `global_cluster_identifier` is provided when the cluster is the secondary cluster of a global database"
+#  type        = string
+#  default     = null
+#}
+#
+#variable "master_username" {
+#  description = "Username for the master DB user. Required unless `snapshot_identifier` or `replication_source_identifier` is provided or unless a `global_cluster_identifier` is provided when the cluster is the secondary cluster of a global database"
+#  type        = string
+#  default     = null
+#}
 
-variable "master_username" {
-  description = "Username for the master DB user. Required unless `snapshot_identifier` or `replication_source_identifier` is provided or unless a `global_cluster_identifier` is provided when the cluster is the secondary cluster of a global database"
-  type        = string
-  default     = null
-}
-
-variable "network_type" {
-  description = "The type of network stack to use (IPV4 or DUAL)"
-  type        = string
-  default     = null
-}
+#variable "network_type" {
+#  description = "The type of network stack to use (IPV4 or DUAL)"
+#  type        = string
+#  default     = null
+#}
 
 variable "port" {
   description = "The port on which the DB accepts connections"
@@ -295,9 +333,9 @@ variable "storage_encrypted" {
 }
 
 variable "storage_type" {
-  description = "Specifies the storage type to be associated with the DB cluster. (This setting is required to create a Multi-AZ DB cluster). Valid values: `io1`, Default: `io1`"
+  description = "Specifies the storage type to be associated with the Aurora DB cluster. Valid values: `aurora`, `aurora-iopt1`, Default: `aurora`"
   type        = string
-  default     = null
+  default     = "aurora"
 }
 
 variable "cluster_tags" {
@@ -322,10 +360,16 @@ variable "cluster_timeouts" {
 # Cluster Instance(s)
 ################################################################################
 
-variable "instances" {
-  description = "Map of cluster instances and any specific/overriding attributes to be created"
-  type        = any
-  default     = {}
+#variable "instances" {
+#  description = "Map of cluster instances and any specific/overriding attributes to be created"
+#  type        = any
+#  default     = {}
+#}
+
+variable "num_instances" {
+  description = "Number of identical DB instances to create.  Default is 1"
+  type        = number
+  default     = 1
 }
 
 variable "auto_minor_version_upgrade" {
@@ -340,11 +384,11 @@ variable "ca_cert_identifier" {
   default     = null
 }
 
-variable "db_parameter_group_name" {
-  description = "The name of the DB parameter group"
-  type        = string
-  default     = null
-}
+#variable "db_parameter_group_name" {
+#  description = "The name of the DB parameter group"
+#  type        = string
+#  default     = null
+#}
 
 variable "instances_use_identifier_prefix" {
   description = "Determines whether cluster instance identifiers are used as prefixes"
@@ -370,11 +414,11 @@ variable "performance_insights_enabled" {
   default     = null
 }
 
-variable "performance_insights_kms_key_id" {
-  description = "The ARN for the KMS key to encrypt Performance Insights data"
-  type        = string
-  default     = null
-}
+#variable "performance_insights_kms_key_id" {
+#  description = "The ARN for the KMS key to encrypt Performance Insights data"
+#  type        = string
+#  default     = null
+#}
 
 variable "performance_insights_retention_period" {
   description = "Amount of time in days to retain Performance Insights data. Either 7 (7 days) or 731 (2 years)"
@@ -382,11 +426,11 @@ variable "performance_insights_retention_period" {
   default     = null
 }
 
-variable "publicly_accessible" {
-  description = "Determines whether instances are publicly accessible. Default `false`"
-  type        = bool
-  default     = null
-}
+#variable "publicly_accessible" {
+#  description = "Determines whether instances are publicly accessible. Default `false`"
+#  type        = bool
+#  default     = null
+#}
 
 variable "instance_timeouts" {
   description = "Create, update, and delete timeout configurations for the cluster instance(s)"
@@ -564,11 +608,11 @@ variable "security_group_description" {
   default     = null
 }
 
-variable "vpc_id" {
-  description = "ID of the VPC where to create security group"
-  type        = string
-  default     = ""
-}
+#variable "vpc_id" {
+#  description = "ID of the VPC where to create security group"
+#  type        = string
+#  default     = ""
+#}
 
 variable "security_group_rules" {
   description = "Map of security group rules to add to the cluster security group created"
@@ -586,17 +630,17 @@ variable "security_group_tags" {
 # Cluster Parameter Group
 ################################################################################
 
-variable "create_db_cluster_parameter_group" {
-  description = "Determines whether a cluster parameter should be created or use existing"
-  type        = bool
-  default     = false
-}
-
-variable "db_cluster_parameter_group_name" {
-  description = "The name of the DB cluster parameter group"
-  type        = string
-  default     = null
-}
+#variable "create_db_cluster_parameter_group" {
+#  description = "Determines whether a cluster parameter should be created or use existing"
+#  type        = bool
+#  default     = false
+#}
+#
+#variable "db_cluster_parameter_group_name" {
+#  description = "The name of the DB cluster parameter group"
+#  type        = string
+#  default     = null
+#}
 
 variable "db_cluster_parameter_group_use_name_prefix" {
   description = "Determines whether the DB cluster parameter group name is used as a prefix"
@@ -604,17 +648,17 @@ variable "db_cluster_parameter_group_use_name_prefix" {
   default     = true
 }
 
-variable "db_cluster_parameter_group_description" {
-  description = "The description of the DB cluster parameter group. Defaults to \"Managed by Terraform\""
-  type        = string
-  default     = null
-}
+#variable "db_cluster_parameter_group_description" {
+#  description = "The description of the DB cluster parameter group. Defaults to \"Managed by Terraform\""
+#  type        = string
+#  default     = null
+#}
 
-variable "db_cluster_parameter_group_family" {
-  description = "The family of the DB cluster parameter group"
-  type        = string
-  default     = ""
-}
+#variable "db_cluster_parameter_group_family" {
+#  description = "The family of the DB cluster parameter group"
+#  type        = string
+#  default     = ""
+#}
 
 variable "db_cluster_parameter_group_parameters" {
   description = "A list of DB cluster parameters to apply. Note that parameters may differ from a family to an other"
@@ -626,11 +670,11 @@ variable "db_cluster_parameter_group_parameters" {
 # DB Parameter Group
 ################################################################################
 
-variable "create_db_parameter_group" {
-  description = "Determines whether a DB parameter should be created or use existing"
-  type        = bool
-  default     = false
-}
+#variable "create_db_parameter_group" {
+#  description = "Determines whether a DB parameter should be created or use existing"
+#  type        = bool
+#  default     = false
+#}
 
 variable "db_parameter_group_use_name_prefix" {
   description = "Determines whether the DB parameter group name is used as a prefix"
@@ -638,17 +682,17 @@ variable "db_parameter_group_use_name_prefix" {
   default     = true
 }
 
-variable "db_parameter_group_description" {
-  description = "The description of the DB parameter group. Defaults to \"Managed by Terraform\""
-  type        = string
-  default     = null
-}
+#variable "db_parameter_group_description" {
+#  description = "The description of the DB parameter group. Defaults to \"Managed by Terraform\""
+#  type        = string
+#  default     = null
+#}
 
-variable "db_parameter_group_family" {
-  description = "The family of the DB parameter group"
-  type        = string
-  default     = ""
-}
+#variable "db_parameter_group_family" {
+#  description = "The family of the DB parameter group"
+#  type        = string
+#  default     = ""
+#}
 
 variable "db_parameter_group_parameters" {
   description = "A list of DB parameters to apply. Note that parameters may differ from a family to an other"
