@@ -170,3 +170,59 @@ output "db_cluster_cloudwatch_log_groups" {
   description = "Map of CloudWatch log groups created and their attributes"
   value       = aws_cloudwatch_log_group.this
 }
+
+################################################################################
+# Master Password KMS Key
+################################################################################
+
+output "db_master_password_kms_key_id" {
+  description = "DB master password KMS encryption key ID"
+  value       = try(aws_kms_key.master_password[0].arn, null)
+}
+
+output "db_master_password_kms_alias" {
+  description = "DB master password KMS encryption key alias"
+  value       = try(aws_kms_alias.master_password[0].name, null)
+}
+
+################################################################################
+# Storage KMS Key
+################################################################################
+
+output "db_storage_kms_key_id" {
+  description = "DB storage KMS encryption key ID"
+  value       = try(aws_kms_key.storage[0].arn, null)
+}
+
+output "db_storage_kms_alias" {
+  description = "DB storage KMS encryption key alias"
+  value       = try(aws_kms_alias.storage[0].name, null)
+}
+
+################################################################################
+# Performance Insights KMS Key
+################################################################################
+
+output "db_performance_insights_kms_key_id" {
+  description = "DB Performance Insights KMS encryption key ID"
+  value       = try(aws_kms_key.performance_insights[0].arn, null)
+}
+
+output "db_performance_insights_kms_alias" {
+  description = "DB Performance Insights KMS encryption key alias"
+  value       = try(aws_kms_alias.performance_insights[0].name, null)
+}
+
+################################################################################
+# SSM Parameter Store Resources
+################################################################################
+
+output "db_cluster_writer_endpoint_parameter" {
+  description = "DB cluster writer endpoint SSM parameter"
+  value       = try(aws_ssm_parameter.aurora_writer_endpoint[0], null)
+}
+
+output "db_cluster_readonly_endpoint" {
+  description = "DB cluster read-only endpoint SSM parameter"
+  value       = try(aws_ssm_parameter.aurora_readonly_endpoint[0], null)
+}

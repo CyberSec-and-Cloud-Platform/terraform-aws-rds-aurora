@@ -39,81 +39,82 @@ data "aws_subnets" "db_subnets" {
 }
 
 data "aws_rds_engine_version" "engine_versions" {
-  engine = local.engine
+  engine  = local.engine
   version = var.engine_version
 }
 
 data "aws_rds_orderable_db_instance" "orderable_instances" {
   for_each = local.instances
 
-  engine = local.engine
+  engine         = local.engine
   engine_version = data.aws_rds_engine_version.engine_versions.version
   instance_class =  each.value.instance_class
-  storage_type = var.storage_type
+  storage_type   = var.storage_type
 }
 
 locals {
-  aws_region = data.aws_region.current.name
-  account_id = data.aws_caller_identity.current.account_id
+  aws_region                        = data.aws_region.current.name
+  account_id                        = data.aws_caller_identity.current.account_id
 
-  create = var.create
-  create_db_subnet_group = true
+  create                            = var.create
+  create_db_subnet_group            = true
   create_db_cluster_parameter_group = true
-  create_db_parameter_group = true
-  create_security_group = true
-  create_cloudwatch_log_group = true
+  create_db_parameter_group         = true
+  create_security_group             = true
+  create_cloudwatch_log_group       = true
 
-  port = coalesce(var.port, (local.engine == "aurora-postgresql" || local.engine == "postgres" ? 5432 : 3306))
 
-  name = "${var.project_name}-${var.env_group}-${var.env}-${var.name}"
-  vpc_name = "${var.project_name}${var.env_group == null ? "" : format("-%s", var.env_group)}"
-  vpc_id = data.aws_vpc.vpc.id
-  availability_zones = data.aws_availability_zones.azs.names
-  subnets = data.aws_subnets.db_subnets.ids
-  network_type = "IPV4"
+  name                          = "${var.project_name}-${var.env_group}-${var.env}-${var.name}"
+  vpc_name                      = "${var.project_name}${var.env_group == null ? "" : format("-%s", var.env_group)}"
+  vpc_id                        = data.aws_vpc.vpc.id
+  availability_zones            = data.aws_availability_zones.azs.names
+  subnets                       = data.aws_subnets.db_subnets.ids
+  network_type                  = "IPV4"
+  port                          = coalesce(var.port, (local.engine == "aurora-postgresql" || local.engine == "postgres" ? 5432 : 3306))
   internal_db_subnet_group_name = try(coalesce(local.db_subnet_group_name, var.name), "")
-  db_subnet_group_name = "${local.name}-${var.subnet_group_name}"
-  subnets_pattern = "*${var.subnet_group_name}*"
+  db_subnet_group_name          = "${local.name}-${var.subnet_group_name}"
+  subnets_pattern               = "*${var.subnet_group_name}*"
+  security_group_name           = local.name
+  security_group_description    = null
+  enable_http_endpoint          = false
+  publicly_accessible           = false
 
-  security_group_name = local.name
-
-  engine = "aurora-postgresql"  // Q: What's the difference between aurora-postgresql and postgres engines?  A: postgres is multi-AZ, non-aurora DB
-  engine_mode = "provisioned"
-  cluster_members = null
-  db_cluster_instance_class = null // Set in instances
-  instances = { for i in range(1, var.num_instances + 1): i => { // Not var
-    instance_class = var.instance_class
+  engine                        = "aurora-postgresql"  // Q: What's the difference between aurora-postgresql and postgres engines?  A: postgres is multi-AZ, non-aurora DB
+  engine_mode                   = "provisioned"
+  cluster_members               = null
+  db_cluster_instance_class     = null // Set in instances
+  is_serverless                 = local.engine_mode == "serverless" // Always false, for the moment.
+  instances                     = { for i in range(1, var.num_instances + 1): i => {
+    instance_class      = var.instance_class
     publicly_accessible = local.publicly_accessible
-    availability_zone = local.availability_zones[(i - 1) % length(local.availability_zones)]
+    availability_zone   = local.availability_zones[(i - 1) % length(local.availability_zones)]
   }}
   // It would be quicker to not do this but we'll keep it for if the instance class becomes variable again.
-  validated_instances = { for k, v in local.instances: k => merge(v, { instance_class = data.aws_rds_orderable_db_instance.orderable_instances[k].instance_class }) }
-  iops = null
-  allocated_storage = null // Storage is managed automatically by Aurora
-  master_username = "postgres"
-  master_password = null
-  manage_master_user_password = true
+  validated_instances           = { for k, v in local.instances: k => merge(v, { instance_class = data.aws_rds_orderable_db_instance.orderable_instances[k].instance_class }) }
+  iops                          = null
+  allocated_storage             = null // Storage is managed automatically by Aurora
+  master_username               = "postgres"
+  master_password               = null
+  manage_master_user_password   = true
   master_user_secret_kms_key_id = aws_kms_alias.master_password[0].arn
-  storage_encrypted = true
-  kms_key_id = aws_kms_key.storage[0].arn
-  db_cluster_db_instance_parameter_group_name = local.name
-  db_cluster_parameter_group_name        = local.name
-  db_cluster_parameter_group_family      = "${local.engine}${split(".", var.engine_version)[0]}"
-  db_cluster_parameter_group_description = "${local.name} parameter group"
-  cluster_parameter_group_name = try(coalesce(local.db_cluster_parameter_group_name, local.name), null)
-  db_parameter_group_name        = local.name
-  db_parameter_group_family      = "${local.engine}${split(".", var.engine_version)[0]}"
-  db_parameter_group_description = "${local.name} parameter group"
-  publicly_accessible = false
-  performance_insights_enabled = var.performance_insights_enabled == null ? false : var.performance_insights_enabled
-  performance_insights_kms_key_id = aws_kms_key.performance_insights[0].arn
-  enabled_cloudwatch_logs_exports = data.aws_rds_engine_version.engine_versions.exportable_log_types
-  enable_http_endpoint = false
-  security_group_description = null
-  backtrack_window = (local.engine == "aurora-mysql" || local.engine == "aurora") && local.engine_mode != "serverless" ? var.backtrack_window : 0
+  storage_encrypted             = true
+  kms_key_id                    = aws_kms_key.storage[0].arn
+  backtrack_window              = (local.engine == "aurora-mysql" || local.engine == "aurora") && local.engine_mode != "serverless" ? var.backtrack_window : 0
 
-  is_serverless = local.engine_mode == "serverless" // Always false, for the moment.
-  common_tags = {
+  performance_insights_enabled    = var.performance_insights_enabled == null ? false : var.performance_insights_enabled
+  performance_insights_kms_key_id = aws_kms_key.performance_insights[0].arn
+
+  db_cluster_db_instance_parameter_group_name = local.name
+  db_cluster_parameter_group_name             = local.name
+  db_cluster_parameter_group_family           = data.aws_rds_engine_version.engine_versions.parameter_group_family
+  db_cluster_parameter_group_description      = "${local.name} parameter group"
+  cluster_parameter_group_name                = try(coalesce(local.db_cluster_parameter_group_name, local.name), null)
+  db_parameter_group_name                     = local.name
+  db_parameter_group_family                   = data.aws_rds_engine_version.engine_versions.parameter_group_family
+  db_parameter_group_description              = "${local.name} parameter group"
+  enabled_cloudwatch_logs_exports             = data.aws_rds_engine_version.engine_versions.exportable_log_types
+
+  common_tags  = {
     Name              = local.name
     Cluster-Name      = var.name
     Project           = var.project_name
@@ -124,7 +125,7 @@ locals {
     owner             = var.owner
   }
   cluster_tags = merge(var.cluster_tags, local.common_tags)
-  tags = merge(var.tags, local.common_tags)
+  tags         = merge(var.tags, local.common_tags)
 }
 
 ################################################################################
@@ -529,14 +530,21 @@ resource "aws_cloudwatch_log_group" "this" {
 }
 
 ################################################################################
+# CloudWatch Log KMS Key
+################################################################################
+
+// TODO confirm this is needed
+
+################################################################################
 # Master Password KMS Key
 ################################################################################
 
 resource "aws_kms_key" "master_password" {
   count = local.create && local.manage_master_user_password ? 1 : 0
 
-  description = "KMS key used to encrypt the master password for Aurora cluster ${local.name}"
+  description         = "KMS key used to encrypt the master password for Aurora cluster ${local.name}"
   enable_key_rotation = true
+
   policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
@@ -564,7 +572,7 @@ resource "aws_kms_key" "master_password" {
         Resource  = "*"
         Condition = {
           StringEquals = {
-            "kms:ViaService" = "rds.${local.aws_region}.amazonaws.com"
+            "kms:ViaService"    = "rds.${local.aws_region}.amazonaws.com"
             "kms:CallerAccount" = local.account_id
           }
         }
@@ -574,7 +582,7 @@ resource "aws_kms_key" "master_password" {
         Effect    = "Allow"
         Principal = {
           AWS = [
-            "*"  // TODO
+            "*"  // TODO is this statement redundant?
           ]
         }
         Action    = [
@@ -588,7 +596,8 @@ resource "aws_kms_key" "master_password" {
         Resource  = "*"
       },
     ]
-  }) // TODO
+  }) // TODO Need to check that this isn't too broad.
+
   tags = local.tags
 }
 
@@ -608,7 +617,8 @@ resource "aws_kms_key" "storage" {
 
   description         = "KMS key used to encrypt storage for Aurora cluster ${local.name}."
   enable_key_rotation = true
-  policy     = jsonencode({
+
+  policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
       {
@@ -623,30 +633,10 @@ resource "aws_kms_key" "storage" {
         Resource  = "*"
       },
       {
+        Sid       = "Allow access through RDS for all principals in the account that are authorized to use RDS",
         Effect    = "Allow"
         Principal = {
           AWS = "*"
-        }
-        Action    = [
-          "kms:CreateGrant",
-          "kms:Decrypt",
-          "kms:GenerateDataKey*",
-        ]
-        Resource  = "*"
-        Condition = {
-          StringEquals = {
-            "kms:ViaService" = "rds.${local.aws_region}.amazonaws.com"
-            "kms:CallerAccount" = local.account_id
-          }
-        }
-      },
-      {
-        Sid       = "Allow IAM roles use of the CMK"
-        Effect    = "Allow"
-        Principal = {
-          AWS = [
-            "*"  // TODO
-          ]
         }
         Action    = [
           "kms:Encrypt",
@@ -654,12 +644,20 @@ resource "aws_kms_key" "storage" {
           "kms:ReEncrypt*",
           "kms:GenerateDataKey*",
           "kms:CreateGrant",
+          "kms:ListGrants",
           "kms:DescribeKey"
         ]
         Resource  = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService"    = "rds.${local.aws_region}.amazonaws.com"
+            "kms:CallerAccount" = local.account_id
+          }
+        }
       },
     ]
   })
+
   tags = local.tags
 }
 
@@ -674,12 +672,14 @@ resource "aws_kms_alias" "storage" {
 # Performance Insights KMS Key
 ################################################################################
 
+// TODO We might consider creating IAM roles for the DB cluster.  See https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_PerfInsights.access-control.html
 resource "aws_kms_key" "performance_insights" {
   count = local.create ? 1 : 0
 
   description         = "KMS key used to encrypt storage for Aurora cluster ${local.name}."
   enable_key_rotation = true
-  policy     = jsonencode({
+
+  policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [
       {
@@ -706,7 +706,7 @@ resource "aws_kms_key" "performance_insights" {
         Resource  = "*"
         Condition = {
           StringEquals = {
-            "kms:ViaService" = "rds.${local.aws_region}.amazonaws.com"
+            "kms:ViaService"    = "rds.${local.aws_region}.amazonaws.com"
             "kms:CallerAccount" = local.account_id
           }
         }
@@ -716,7 +716,7 @@ resource "aws_kms_key" "performance_insights" {
         Effect    = "Allow"
         Principal = {
           AWS = [
-            "*"  // TODO
+            "*"  // TODO Restrict to a particular role?
           ]
         }
         Action    = [
@@ -731,6 +731,7 @@ resource "aws_kms_key" "performance_insights" {
       },
     ]
   })
+
   tags = local.tags
 }
 
@@ -749,17 +750,21 @@ resource "aws_kms_alias" "performance_insights" {
 resource "aws_ssm_parameter" "aurora_writer_endpoint" {
   count = local.create ? 1 : 0
 
-  name = "/${var.project_name}/${var.env_group}/${var.env}/rds/${local.engine}/${var.name}/endpoint-w"
-  type = "String"
+  name  = "/${var.project_name}/${var.env_group}/${var.env}/rds/${local.engine}/${var.name}/endpoint-w"
+  type  = "String"
   value = try(aws_rds_cluster.this[0].endpoint, null)
+
+  tags = local.tags
 }
 
 # The read-only end-point.
 resource "aws_ssm_parameter" "aurora_readonly_endpoint" {
   count = local.create ? 1 : 0
 
-  name = "/${var.project_name}/${var.env_group}/${var.env}/rds/${local.engine}/${var.name}/endpoint-ro"
-  type = "String"
+  name  = "/${var.project_name}/${var.env_group}/${var.env}/rds/${local.engine}/${var.name}/endpoint-ro"
+  type  = "String"
   value = try(aws_rds_cluster.this[0].reader_endpoint, null)
+
+  tags = local.tags
 }
 
