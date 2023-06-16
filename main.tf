@@ -1,5 +1,57 @@
 data "aws_partition" "current" {}
 
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+data "aws_availability_zones" "azs" {
+  filter {
+    name   = "zone-type"
+    values = [
+      "availability-zone"
+    ]
+  }
+}
+
+data "aws_vpc" "vpc" {
+  filter {
+    name   = "tag:Name"
+    values = [
+      local.vpc_name
+    ]
+  }
+}
+
+data "aws_subnets" "db_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [
+      data.aws_vpc.vpc.id
+    ]
+  }
+
+  filter {
+    name   = "tag:Name"
+    values = [
+      local.subnets_pattern
+    ]
+  }
+}
+
+data "aws_rds_engine_version" "engine_versions" {
+  engine = local.engine
+  version = var.engine_version
+}
+
+data "aws_rds_orderable_db_instance" "orderable_instances" {
+  for_each = local.instances
+
+  engine = local.engine
+  engine_version = data.aws_rds_engine_version.engine_versions.version
+  instance_class =  each.value.instance_class
+  storage_type = var.storage_type
+}
+
 locals {
   aws_region = data.aws_region.current.name
   account_id = data.aws_caller_identity.current.account_id
@@ -8,6 +60,8 @@ locals {
   create_db_subnet_group = true
   create_db_cluster_parameter_group = true
   create_db_parameter_group = true
+  create_security_group = true
+  create_cloudwatch_log_group = true
 
   port = coalesce(var.port, (local.engine == "aurora-postgresql" || local.engine == "postgres" ? 5432 : 3306))
 
@@ -21,11 +75,12 @@ locals {
   db_subnet_group_name = "${local.name}-${var.subnet_group_name}"
   subnets_pattern = "*${var.subnet_group_name}*"
 
-  security_group_name = try(coalesce(var.security_group_name, var.name), "")
+  security_group_name = local.name
 
   engine = "aurora-postgresql"  // Q: What's the difference between aurora-postgresql and postgres engines?  A: postgres is multi-AZ, non-aurora DB
   engine_mode = "provisioned"
   cluster_members = null
+  db_cluster_instance_class = null // Set in instances
   instances = { for i in range(1, var.num_instances + 1): i => { // Not var
     instance_class = var.instance_class
     publicly_accessible = local.publicly_accessible
@@ -39,7 +94,9 @@ locals {
   master_password = null
   manage_master_user_password = true
   master_user_secret_kms_key_id = aws_kms_alias.master_password[0].arn
+  storage_encrypted = true
   kms_key_id = aws_kms_key.storage[0].arn
+  db_cluster_db_instance_parameter_group_name = local.name
   db_cluster_parameter_group_name        = local.name
   db_cluster_parameter_group_family      = "${local.engine}${split(".", var.engine_version)[0]}"
   db_cluster_parameter_group_description = "${local.name} parameter group"
@@ -48,8 +105,11 @@ locals {
   db_parameter_group_family      = "${local.engine}${split(".", var.engine_version)[0]}"
   db_parameter_group_description = "${local.name} parameter group"
   publicly_accessible = false
+  performance_insights_enabled = var.performance_insights_enabled == null ? false : var.performance_insights_enabled
   performance_insights_kms_key_id = aws_kms_key.performance_insights[0].arn
-
+  enabled_cloudwatch_logs_exports = data.aws_rds_engine_version.engine_versions.exportable_log_types
+  enable_http_endpoint = false
+  security_group_description = null
   backtrack_window = (local.engine == "aurora-mysql" || local.engine == "aurora") && local.engine_mode != "serverless" ? var.backtrack_window : 0
 
   is_serverless = local.engine_mode == "serverless" // Always false, for the moment.
@@ -58,13 +118,13 @@ locals {
     Cluster-Name      = var.name
     Project           = var.project_name
     Environment-Group = var.env_group
-    Environment       = var.env
-    Cost-Centre       = var.cost_centre
-    Application       = var.application
-    Owner             = var.owner
+    environment       = var.env
+    cost-centre       = var.cost_centre
+    application       = var.application
+    owner             = var.owner
   }
-  cluster_tags = merge(var.cluster_tags, common_tags)
-  tags = merge(var.tags, common_tags)
+  cluster_tags = merge(var.cluster_tags, local.common_tags)
+  tags = merge(var.tags, local.common_tags)
 }
 
 ################################################################################
@@ -101,14 +161,14 @@ resource "aws_rds_cluster" "this" {
   cluster_members                     = local.cluster_members
   copy_tags_to_snapshot               = var.copy_tags_to_snapshot
   database_name                       = var.is_primary_cluster ? var.database_name : null
-  db_cluster_instance_class           = var.db_cluster_instance_class
+  db_cluster_instance_class           = local.db_cluster_instance_class
   db_cluster_parameter_group_name     = local.create_db_cluster_parameter_group ? aws_rds_cluster_parameter_group.this[0].id : local.db_cluster_parameter_group_name
-  db_instance_parameter_group_name    = var.allow_major_version_upgrade ? var.db_cluster_db_instance_parameter_group_name : null
+  db_instance_parameter_group_name    = var.allow_major_version_upgrade ? local.db_cluster_db_instance_parameter_group_name : null
   db_subnet_group_name                = local.db_subnet_group_name
   deletion_protection                 = var.deletion_protection
   enable_global_write_forwarding      = var.enable_global_write_forwarding
-  enabled_cloudwatch_logs_exports     = var.enabled_cloudwatch_logs_exports
-  enable_http_endpoint                = var.enable_http_endpoint
+  enabled_cloudwatch_logs_exports     = local.enabled_cloudwatch_logs_exports
+  enable_http_endpoint                = local.enable_http_endpoint
   engine                              = local.engine
   engine_mode                         = local.engine_mode
   engine_version                      = var.engine_version
@@ -175,7 +235,7 @@ resource "aws_rds_cluster" "this" {
   skip_final_snapshot    = var.skip_final_snapshot
   snapshot_identifier    = var.snapshot_identifier
   source_region          = var.source_region
-  storage_encrypted      = var.storage_encrypted
+  storage_encrypted      = local.storage_encrypted
   storage_type           = var.storage_type
   tags                   = merge(local.tags, local.cluster_tags)
   vpc_security_group_ids = compact(concat([try(aws_security_group.this[0].id, "")], var.vpc_security_group_ids))
@@ -213,7 +273,7 @@ resource "aws_rds_cluster_instance" "this" {
   ca_cert_identifier                    = var.ca_cert_identifier
   cluster_identifier                    = aws_rds_cluster.this[0].id
   copy_tags_to_snapshot                 = try(each.value.copy_tags_to_snapshot, var.copy_tags_to_snapshot)
-  db_parameter_group_name               = local.create_db_parameter_group ? aws_db_parameter_group.this[0].id : var.db_parameter_group_name
+  db_parameter_group_name               = local.create_db_parameter_group ? aws_db_parameter_group.this[0].id : local.db_parameter_group_name
   db_subnet_group_name                  = local.db_subnet_group_name
   engine                                = local.engine
   engine_version                        = var.engine_version
@@ -222,8 +282,8 @@ resource "aws_rds_cluster_instance" "this" {
   instance_class                        = try(each.value.instance_class, var.instance_class)
   monitoring_interval                   = try(each.value.monitoring_interval, var.monitoring_interval)
   monitoring_role_arn                   = var.create_monitoring_role ? try(aws_iam_role.rds_enhanced_monitoring[0].arn, null) : var.monitoring_role_arn
-  performance_insights_enabled          = try(each.value.performance_insights_enabled, var.performance_insights_enabled)
-  performance_insights_kms_key_id       = try(each.value.performance_insights_kms_key_id, local.performance_insights_kms_key_id)
+  performance_insights_enabled          = try(each.value.performance_insights_enabled, local.performance_insights_enabled)
+  performance_insights_kms_key_id       = try(each.value.performance_insights_enabled, local.performance_insights_enabled) ? local.performance_insights_kms_key_id : null
   performance_insights_retention_period = try(each.value.performance_insights_retention_period, var.performance_insights_retention_period)
   # preferred_backup_window - is set at the cluster level and will error if provided here
   preferred_maintenance_window = try(each.value.preferred_maintenance_window, var.preferred_maintenance_window)
@@ -361,12 +421,12 @@ resource "aws_appautoscaling_policy" "this" {
 ################################################################################
 
 resource "aws_security_group" "this" {
-  count = local.create && var.create_security_group ? 1 : 0
+  count = local.create && local.create_security_group ? 1 : 0
 
   name        = var.security_group_use_name_prefix ? null : local.security_group_name
   name_prefix = var.security_group_use_name_prefix ? "${local.security_group_name}-" : null
-  vpc_id      = var.vpc_id
-  description = coalesce(var.security_group_description, "Control traffic to/from RDS Aurora ${var.name}")
+  vpc_id      = local.vpc_id
+  description = coalesce(local.security_group_description, "Control traffic to/from RDS Aurora ${local.name}")
 
   tags = merge(local.tags, var.security_group_tags, {
     Name = local.security_group_name
@@ -378,7 +438,7 @@ resource "aws_security_group" "this" {
 }
 
 resource "aws_security_group_rule" "this" {
-  for_each = { for k, v in var.security_group_rules : k => v if local.create && var.create_security_group }
+  for_each = { for k, v in var.security_group_rules : k => v if local.create && local.create_security_group }
 
   # required
   type              = try(each.value.type, "ingress")
@@ -459,7 +519,7 @@ resource "aws_db_parameter_group" "this" {
 
 # Log groups will not be created if using a cluster identifier prefix
 resource "aws_cloudwatch_log_group" "this" {
-  for_each = toset([for log in var.enabled_cloudwatch_logs_exports : log if local.create && var.create_cloudwatch_log_group && !var.cluster_use_name_prefix])
+  for_each = toset([for log in local.enabled_cloudwatch_logs_exports : log if local.create && local.create_cloudwatch_log_group && !var.cluster_use_name_prefix])
 
   name              = "/aws/rds/cluster/${local.name}/${each.value}"  // TODO this needs to be changed.
   retention_in_days = var.cloudwatch_log_group_retention_in_days
@@ -703,58 +763,3 @@ resource "aws_ssm_parameter" "aurora_readonly_endpoint" {
   value = try(aws_rds_cluster.this[0].reader_endpoint, null)
 }
 
-################################################################################
-# Data Sources
-################################################################################
-
-data "aws_caller_identity" "current" {}
-
-data "aws_region" "current" {}
-
-data "aws_availability_zones" "azs" {
-  filter {
-    name   = "zone-type"
-    values = [
-      "availability-zone"
-    ]
-  }
-}
-
-data "aws_vpc" "vpc" {
-  filter {
-    name   = "tag:Name"
-    values = [
-      local.vpc_name
-    ]
-  }
-}
-
-data "aws_subnets" "db_subnets" {
-  filter {
-    name   = "vpc-id"
-    values = [
-      data.aws_vpc.vpc.id
-    ]
-  }
-
-  filter {
-    name   = "tag:Name"
-    values = [
-      local.subnets_pattern
-    ]
-  }
-}
-
-data "aws_rds_engine_version" "engine_versions" {
-  engine = local.engine
-  version = var.engine_version
-}
-
-data "aws_rds_orderable_db_instance" "orderable_instances" {
-  for_each = local.instances
-
-  engine = local.engine
-  engine_version = data.aws_rds_engine_version.engine_versions.version
-  instance_class =  each.value.instance_class
-  storage_type = var.storage_type
-}

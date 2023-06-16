@@ -20,6 +20,7 @@ variable "env_group" {
   type        = string
   validation {
     condition = contains(["prod", "nonprod"], var.env_group)
+    error_message = "env_group must be one of {\"prod\", \"nonprod\"}"
   }
 }
 
@@ -110,11 +111,11 @@ variable "apply_immediately" {
   default     = null
 }
 
-variable "availability_zones" {
-  description = "List of EC2 Availability Zones for the DB cluster storage where DB cluster instances can be created. RDS automatically assigns 3 AZs if less than 3 AZs are configured, which will show as a difference requiring resource recreation next Terraform apply"
-  type        = list(string)
-  default     = null
-}
+#variable "availability_zones" {
+#  description = "List of EC2 Availability Zones for the DB cluster storage where DB cluster instances can be created. RDS automatically assigns 3 AZs if less than 3 AZs are configured, which will show as a difference requiring resource recreation next Terraform apply"
+#  type        = list(string)
+#  default     = null
+#}
 
 variable "backup_retention_period" {
   description = "The days to retain backups for. Default `7`"
@@ -146,17 +147,17 @@ variable "database_name" {
   default     = null
 }
 
-variable "db_cluster_instance_class" {
-  description = "The compute and memory capacity of each DB instance in the Multi-AZ DB cluster, for example db.m6g.xlarge. Not all DB instance classes are available in all AWS Regions, or for all database engines"
-  type        = string
-  default     = null
-}
+#variable "db_cluster_instance_class" {
+#  description = "The compute and memory capacity of each DB instance in the Multi-AZ DB cluster, for example db.m6g.xlarge. Not all DB instance classes are available in all AWS Regions, or for all database engines"
+#  type        = string
+#  default     = null
+#}
 
-variable "db_cluster_db_instance_parameter_group_name" {
-  description = "Instance parameter group to associate with all instances of the DB cluster. The `db_cluster_db_instance_parameter_group_name` is only valid in combination with `allow_major_version_upgrade`"
-  type        = string
-  default     = null
-}
+#variable "db_cluster_db_instance_parameter_group_name" {
+#  description = "Instance parameter group to associate with all instances of the DB cluster. The `db_cluster_db_instance_parameter_group_name` is only valid in combination with `allow_major_version_upgrade`"
+#  type        = string
+#  default     = null
+#}
 
 variable "deletion_protection" {
   description = "If the DB instance should have deletion protection enabled. The database can't be deleted when this value is set to `true`. The default is `false`"
@@ -170,17 +171,17 @@ variable "enable_global_write_forwarding" {
   default     = null
 }
 
-variable "enabled_cloudwatch_logs_exports" {
-  description = "Set of log types to export to cloudwatch. If omitted, no logs will be exported. The following log types are supported: `audit`, `error`, `general`, `slowquery`, `postgresql`"
-  type        = list(string)
-  default     = []
-}
+#variable "enabled_cloudwatch_logs_exports" {
+#  description = "Set of log types to export to cloudwatch. If omitted, no logs will be exported. The following log types are supported: `audit`, `error`, `general`, `slowquery`, `postgresql`"
+#  type        = list(string)
+#  default     = []
+#}
 
-variable "enable_http_endpoint" {
-  description = "Enable HTTP endpoint (data API). Only valid when engine_mode is set to `serverless`"
-  type        = bool
-  default     = null
-}
+#variable "enable_http_endpoint" {
+#  description = "Enable HTTP endpoint (data API). Only valid when engine_mode is set to `serverless`"
+#  type        = bool
+#  default     = null
+#}
 
 #variable "engine" {
 #  description = "The name of the database engine to be used for this DB cluster. Defaults to `aurora`. Valid Values: `aurora`, `aurora-mysql`, `aurora-postgresql`"
@@ -326,11 +327,11 @@ variable "source_region" {
   default     = null
 }
 
-variable "storage_encrypted" {
-  description = "Specifies whether the DB cluster is encrypted. The default is `true`"
-  type        = bool
-  default     = true
-}
+#variable "storage_encrypted" {
+#  description = "Specifies whether the DB cluster is encrypted. The default is `true`"
+#  type        = bool
+#  default     = true
+#}
 
 variable "storage_type" {
   description = "Specifies the storage type to be associated with the Aurora DB cluster. Valid values: `aurora`, `aurora-iopt1`, Default: `aurora`"
@@ -584,17 +585,17 @@ variable "autoscaling_target_connections" {
 # Security Group
 ################################################################################
 
-variable "create_security_group" {
-  description = "Determines whether to create security group for RDS cluster"
-  type        = bool
-  default     = true
-}
+#variable "create_security_group" {
+#  description = "Determines whether to create security group for RDS cluster"
+#  type        = bool
+#  default     = true
+#}
 
-variable "security_group_name" {
-  description = "The security group name. Default value is (`var.name`)"
-  type        = string
-  default     = ""
-}
+#variable "security_group_name" {
+#  description = "The security group name. Default value is (`var.name`)"
+#  type        = string
+#  default     = ""
+#}
 
 variable "security_group_use_name_prefix" {
   description = "Determines whether the security group name (`var.name`) is used as a prefix"
@@ -602,11 +603,11 @@ variable "security_group_use_name_prefix" {
   default     = true
 }
 
-variable "security_group_description" {
-  description = "The description of the security group. If value is set to empty string it will contain cluster name in the description"
-  type        = string
-  default     = null
-}
+#variable "security_group_description" {
+#  description = "The description of the security group. If value is set to empty string it will contain cluster name in the description"
+#  type        = string
+#  default     = null
+#}
 
 #variable "vpc_id" {
 #  description = "ID of the VPC where to create security group"
@@ -704,11 +705,11 @@ variable "db_parameter_group_parameters" {
 # CloudWatch Log Group
 ################################################################################
 
-variable "create_cloudwatch_log_group" {
-  description = "Determines whether a CloudWatch log group is created for each `enabled_cloudwatch_logs_exports`"
-  type        = bool
-  default     = false
-}
+#variable "create_cloudwatch_log_group" {
+#  description = "Determines whether a CloudWatch log group is created for each `enabled_cloudwatch_logs_exports`"
+#  type        = bool
+#  default     = false
+#}
 
 variable "cloudwatch_log_group_retention_in_days" {
   description = "The number of days to retain CloudWatch logs for the DB instance"
