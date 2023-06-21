@@ -62,7 +62,7 @@ locals {
   create_db_parameter_group         = true
   create_security_group             = true
   create_cloudwatch_log_group       = true
-  create_endpoint_params            = false
+  create_endpoint_params            = var.create_endpoint_params
 
 
   name                          = "${var.project_name}-${var.env_group}-${var.env}-${var.name}"

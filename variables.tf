@@ -722,3 +722,13 @@ variable "cloudwatch_log_group_kms_key_id" {
   type        = string
   default     = null
 }
+
+################################################################################
+# SSM Parameter Store
+################################################################################
+
+variable "create_endpoint_params" {
+  description = "Whether read-only and writer endpoints should be pushed into SSM parameter store"
+  type        = string
+  default     = false
+}
