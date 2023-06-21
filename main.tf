@@ -62,6 +62,7 @@ locals {
   create_db_parameter_group         = true
   create_security_group             = true
   create_cloudwatch_log_group       = true
+  create_endpoint_params            = false
 
 
   name                          = "${var.project_name}-${var.env_group}-${var.env}-${var.name}"
@@ -748,7 +749,7 @@ resource "aws_kms_alias" "performance_insights" {
 
 # The writer end-point.
 resource "aws_ssm_parameter" "aurora_writer_endpoint" {
-  count = local.create ? 1 : 0
+  count = local.create && local.create_endpoint_params ? 1 : 0
 
   name  = "/${var.project_name}/${var.env_group}/${var.env}/rds/${local.engine}/${var.name}/endpoint-w"
   type  = "String"
@@ -759,7 +760,7 @@ resource "aws_ssm_parameter" "aurora_writer_endpoint" {
 
 # The read-only end-point.
 resource "aws_ssm_parameter" "aurora_readonly_endpoint" {
-  count = local.create ? 1 : 0
+  count = local.create && local.create_endpoint_params ? 1 : 0
 
   name  = "/${var.project_name}/${var.env_group}/${var.env}/rds/${local.engine}/${var.name}/endpoint-ro"
   type  = "String"
