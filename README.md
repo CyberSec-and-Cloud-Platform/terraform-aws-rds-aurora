@@ -294,6 +294,7 @@ No modules.
 | <a name="input_copy_tags_to_snapshot"></a> [copy\_tags\_to\_snapshot](#input\_copy\_tags\_to\_snapshot) | Copy all Cluster `tags` to snapshots | `bool` | `null` | no |
 | <a name="input_cost_centre"></a> [cost\_centre](#input\_cost\_centre) | Cost-centre for the created resources | `string` | n/a | yes |
 | <a name="input_create"></a> [create](#input\_create) | Whether cluster should be created (affects nearly all resources) | `bool` | `true` | no |
+| <a name="input_create_endpoint_params"></a> [create\_endpoint\_params](#input\_create\_endpoint\_params) | Whether read-only and writer endpoints should be pushed into SSM parameter store | `string` | `false` | no |
 | <a name="input_create_monitoring_role"></a> [create\_monitoring\_role](#input\_create\_monitoring\_role) | Determines whether to create the IAM role for RDS enhanced monitoring | `bool` | `true` | no |
 | <a name="input_database_name"></a> [database\_name](#input\_database\_name) | Name for an automatically created database on cluster creation | `string` | `null` | no |
 | <a name="input_db_cluster_parameter_group_parameters"></a> [db\_cluster\_parameter\_group\_parameters](#input\_db\_cluster\_parameter\_group\_parameters) | A list of DB cluster parameters to apply. Note that parameters may differ from a family to an other | `list(map(string))` | `[]` | no |
@@ -348,6 +349,7 @@ No modules.
 | <a name="input_storage_type"></a> [storage\_type](#input\_storage\_type) | Specifies the storage type to be associated with the Aurora DB cluster. Valid values: `aurora`, `aurora-iopt1`, Default: `aurora` | `string` | `"aurora"` | no |
 | <a name="input_subnet_group_name"></a> [subnet\_group\_name](#input\_subnet\_group\_name) | Subnet name for subnets spanning 1 or more availability zones, e.g. "private" | `string` | n/a | yes |
 | <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to add to all resources | `map(string)` | `{}` | no |
+| <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | VPC name into which the cluster will be deployed | `string` | n/a | yes |
 | <a name="input_vpc_security_group_ids"></a> [vpc\_security\_group\_ids](#input\_vpc\_security\_group\_ids) | List of VPC security groups to associate to the cluster in addition to the security group created | `list(string)` | `[]` | no |
 
 ## Outputs
@@ -373,8 +375,16 @@ No modules.
 | <a name="output_db_cluster_cloudwatch_log_groups"></a> [db\_cluster\_cloudwatch\_log\_groups](#output\_db\_cluster\_cloudwatch\_log\_groups) | Map of CloudWatch log groups created and their attributes |
 | <a name="output_db_cluster_parameter_group_arn"></a> [db\_cluster\_parameter\_group\_arn](#output\_db\_cluster\_parameter\_group\_arn) | The ARN of the DB cluster parameter group created |
 | <a name="output_db_cluster_parameter_group_id"></a> [db\_cluster\_parameter\_group\_id](#output\_db\_cluster\_parameter\_group\_id) | The ID of the DB cluster parameter group created |
+| <a name="output_db_cluster_readonly_endpoint"></a> [db\_cluster\_readonly\_endpoint](#output\_db\_cluster\_readonly\_endpoint) | DB cluster read-only endpoint SSM parameter |
+| <a name="output_db_cluster_writer_endpoint_parameter"></a> [db\_cluster\_writer\_endpoint\_parameter](#output\_db\_cluster\_writer\_endpoint\_parameter) | DB cluster writer endpoint SSM parameter |
+| <a name="output_db_master_password_kms_alias"></a> [db\_master\_password\_kms\_alias](#output\_db\_master\_password\_kms\_alias) | DB master password KMS encryption key alias |
+| <a name="output_db_master_password_kms_key_id"></a> [db\_master\_password\_kms\_key\_id](#output\_db\_master\_password\_kms\_key\_id) | DB master password KMS encryption key ID |
 | <a name="output_db_parameter_group_arn"></a> [db\_parameter\_group\_arn](#output\_db\_parameter\_group\_arn) | The ARN of the DB parameter group created |
 | <a name="output_db_parameter_group_id"></a> [db\_parameter\_group\_id](#output\_db\_parameter\_group\_id) | The ID of the DB parameter group created |
+| <a name="output_db_performance_insights_kms_alias"></a> [db\_performance\_insights\_kms\_alias](#output\_db\_performance\_insights\_kms\_alias) | DB Performance Insights KMS encryption key alias |
+| <a name="output_db_performance_insights_kms_key_id"></a> [db\_performance\_insights\_kms\_key\_id](#output\_db\_performance\_insights\_kms\_key\_id) | DB Performance Insights KMS encryption key ID |
+| <a name="output_db_storage_kms_alias"></a> [db\_storage\_kms\_alias](#output\_db\_storage\_kms\_alias) | DB storage KMS encryption key alias |
+| <a name="output_db_storage_kms_key_id"></a> [db\_storage\_kms\_key\_id](#output\_db\_storage\_kms\_key\_id) | DB storage KMS encryption key ID |
 | <a name="output_db_subnet_group_name"></a> [db\_subnet\_group\_name](#output\_db\_subnet\_group\_name) | The db subnet group name |
 | <a name="output_enhanced_monitoring_iam_role_arn"></a> [enhanced\_monitoring\_iam\_role\_arn](#output\_enhanced\_monitoring\_iam\_role\_arn) | The Amazon Resource Name (ARN) specifying the enhanced monitoring role |
 | <a name="output_enhanced_monitoring_iam_role_name"></a> [enhanced\_monitoring\_iam\_role\_name](#output\_enhanced\_monitoring\_iam\_role\_name) | The name of the enhanced monitoring role |
