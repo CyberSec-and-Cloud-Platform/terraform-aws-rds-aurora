@@ -17,7 +17,7 @@ data "aws_vpc" "vpc" {
   filter {
     name   = "tag:Name"
     values = [
-      local.vpc_name
+      var.vpc_name
     ]
   }
 }
@@ -54,6 +54,7 @@ data "aws_rds_orderable_db_instance" "orderable_instances" {
 
 locals {
   aws_region                        = data.aws_region.current.name
+  aws_region_short_name             = split("-", data.aws_availability_zones.azs.zone_ids[0])[0]
   account_id                        = data.aws_caller_identity.current.account_id
 
   create                            = var.create
@@ -65,8 +66,8 @@ locals {
   create_endpoint_params            = var.create_endpoint_params
 
 
-  name                          = "${var.project_name}-${var.env_group}-${var.env}-${var.name}"
-  vpc_name                      = "${var.project_name}${var.env_group == null ? "" : format("-%s", var.env_group)}"
+  name                          = "${local.vpc_name}-${local.aws_region_short_name}-rdsau-${var.env}-${var.name}"
+  vpc_name                      = data.aws_vpc.vpc.tags["Name"] // Refer back to the looked-up VPC entity.
   vpc_id                        = data.aws_vpc.vpc.id
   availability_zones            = data.aws_availability_zones.azs.names
   subnets                       = data.aws_subnets.db_subnets.ids

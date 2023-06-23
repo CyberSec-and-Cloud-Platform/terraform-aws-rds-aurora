@@ -29,6 +29,11 @@ variable "env" {
   type        = string
 }
 
+variable "vpc_name" {
+  description = "VPC name into which the cluster will be deployed"
+  type        = string
+}
+
 variable "cost_centre" {
   description = "Cost-centre for the created resources"
   type        = string
