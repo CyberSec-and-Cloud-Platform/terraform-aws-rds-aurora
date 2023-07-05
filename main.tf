@@ -95,16 +95,16 @@ locals {
   validated_instances           = { for k, v in local.instances: k => merge(v, { instance_class = data.aws_rds_orderable_db_instance.orderable_instances[k].instance_class }) }
   iops                          = null
   allocated_storage             = null // Storage is managed automatically by Aurora
-  master_username               = "postgres"
+  master_username               = var.master_username
   master_password               = null
   manage_master_user_password   = true
-  master_user_secret_kms_key_id = aws_kms_alias.master_password[0].arn
+  master_user_secret_kms_key_id = local.create ? try(aws_kms_alias.master_password[0].arn, null) : null
   storage_encrypted             = true
-  kms_key_id                    = aws_kms_key.storage[0].arn
+  kms_key_id                    = local.create ? try(aws_kms_key.storage[0].arn, null) : null
   backtrack_window              = (local.engine == "aurora-mysql" || local.engine == "aurora") && local.engine_mode != "serverless" ? var.backtrack_window : 0
 
   performance_insights_enabled    = var.performance_insights_enabled == null ? false : var.performance_insights_enabled
-  performance_insights_kms_key_id = aws_kms_key.performance_insights[0].arn
+  performance_insights_kms_key_id = local.create ? try(aws_kms_key.performance_insights[0].arn, null) : null
 
   db_cluster_db_instance_parameter_group_name = local.name
   db_cluster_parameter_group_name             = local.name
@@ -167,7 +167,7 @@ resource "aws_rds_cluster" "this" {
   db_cluster_instance_class           = local.db_cluster_instance_class
   db_cluster_parameter_group_name     = local.create_db_cluster_parameter_group ? aws_rds_cluster_parameter_group.this[0].id : local.db_cluster_parameter_group_name
   db_instance_parameter_group_name    = var.allow_major_version_upgrade ? local.db_cluster_db_instance_parameter_group_name : null
-  db_subnet_group_name                = local.db_subnet_group_name
+  db_subnet_group_name                = local.create_db_subnet_group ? try(aws_db_subnet_group.this[0].name, local.internal_db_subnet_group_name) : local.internal_db_subnet_group_name
   deletion_protection                 = var.deletion_protection
   enable_global_write_forwarding      = var.enable_global_write_forwarding
   enabled_cloudwatch_logs_exports     = local.enabled_cloudwatch_logs_exports
@@ -250,6 +250,11 @@ resource "aws_rds_cluster" "this" {
   }
 
   lifecycle {
+    precondition {
+      condition = (!var.skip_final_snapshot && var.final_snapshot_identifier != null) || (var.skip_final_snapshot)
+      error_message = "Value required when skip_final_snapshot is false"
+    }
+
     ignore_changes = [
       # See https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/rds_cluster#replication_source_identifier
       # Since this is used either in read-replica clusters or global clusters, this should be acceptable to specify
